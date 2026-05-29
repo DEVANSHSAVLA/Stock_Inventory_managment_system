@@ -82,3 +82,4 @@ Run `seed_data` to generate the following credentials:
 | **Admin** | `admin@inventory.local` | `Admin@1234` |
 | **Manager** | `manager1@inventory.local` | `Manager@1234` |
 | **Staff** | `staff1@inventory.local` | `Staff@1234` |
+
