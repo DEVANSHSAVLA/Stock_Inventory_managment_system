@@ -1,0 +1,90 @@
+# ==========================================
+# IDE & Editor
+# ==========================================
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.iml
+
+# ==========================================
+# OS Generated
+# ==========================================
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ==========================================
+# Node.js
+# ==========================================
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+dist/
+dist-ssr/
+*.local
+
+# ==========================================
+# Python / Django Backend
+# ==========================================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+develop-eggs/
+eggs/
+.eggs/
+*.egg-info/
+*.egg
+.installed.cfg
+sdist/
+var/
+*.log
+
+# Environment files (contain secrets)
+.env
+.env.*
+!.env.example
+
+# Backend logs
+inventory_system/backend/logs/
+
+# Backend media uploads
+inventory_system/backend/media/
+
+# ==========================================
+# Flutter / Dart
+# ==========================================
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+# Flutter build outputs (large binaries)
+**/build/
+inventory_system/builds/
+
+# ==========================================
+# Distribution (keep tracked for releases)
+# ==========================================
+# Zip archives
+Distribution/*.zip
+
+# ==========================================
+# Miscellaneous
+# ==========================================
+*.log
+logs/

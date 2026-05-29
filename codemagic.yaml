@@ -1,0 +1,143 @@
+# codemagic.yaml
+# Production-ready CI/CD configuration for Stock Inventory.
+# Supports BOTH native iOS app compilation AND Web PWA (Progressive Web App) builds.
+
+workflows:
+  # WORKFLOW 1: Web PWA compilation (Ideal for 100% Free & Wireless Client Deployment)
+  web-release:
+    name: Stock Inventory - Web PWA Build
+    max_build_duration: 30
+    instance_type: mac_mini_m1
+    
+    environment:
+      flutter: stable
+      
+    cache:
+      cache_paths:
+        - $FCI_BUILD_DIR/inventory_system/flutter_app/.pub-cache
+        
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          
+    scripts:
+      - name: Initialize environment and install packages
+        script: |
+          cd inventory_system/flutter_app
+          flutter channel stable
+          flutter upgrade
+          flutter pub get
+          
+      - name: Build Flutter Web App as an offline-first PWA
+        script: |
+          cd inventory_system/flutter_app
+          # Compiles the web app with offline caching strategies for mobile devices
+          flutter build web --release --pwa-strategy=offline-first
+          
+      - name: Package Web deployment artifacts
+        script: |
+          cd inventory_system/flutter_app/build
+          # Create a compressed zip containing the complete compiled website for easy upload
+          zip -r web.zip web
+          
+    artifacts:
+      - inventory_system/flutter_app/build/web.zip
+      - inventory_system/flutter_app/build/web/**/*
+      
+    publishing:
+      email:
+        recipients:
+          - deepakchheda@gmail.com
+        notify:
+          success: true
+          failure: true
+
+  # WORKFLOW 2: iOS Production Bundle compilation (For App Store & TestFlight)
+  ios-release:
+    name: Stock Inventory - iOS Production Build
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    
+    environment:
+      flutter: stable
+      xcode: latest
+      cocoapods: default
+      groups:
+        # Set up this variable group in your Codemagic Web console:
+        # Includes Apple API Credentials: 
+        #   - APP_STORE_CONNECT_PRIVATE_KEY
+        #   - APP_STORE_CONNECT_KEY_IDENTIFIER
+        #   - APP_STORE_CONNECT_ISSUER_ID
+        - apple_credentials
+      vars:
+        BUNDLE_ID: "com.inventory.stocksystem"
+        APP_STORE_CONNECT_PROJECT_ID: "674839201" # Replace with your App Store Connect App numeric ID (optional)
+        
+    cache:
+      cache_paths:
+        - $FCI_BUILD_DIR/inventory_system/flutter_app/.pub-cache
+        - $FCI_BUILD_DIR/inventory_system/flutter_app/ios/Pods
+        
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: 'main'
+          
+    scripts:
+      - name: Initialize environment and install Flutter packages
+        script: |
+          cd inventory_system/flutter_app
+          flutter channel stable
+          flutter upgrade
+          flutter doctor
+          flutter pub get
+          
+      - name: Set up macOS local signing keychain
+        script: |
+          keychain initialize
+          
+      - name: Fetch and download signing certificates from Apple Developer Portal
+        script: |
+          # Automatically downloads or creates certificates & provisioning profiles on the fly
+          # Connects using the API Key defined in environment variables (groups: apple_credentials)
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+          
+      - name: Install signing certificates to local keychain
+        script: |
+          keychain add-certificates
+          
+      - name: Setup CocoaPods and install iOS pods
+        script: |
+          cd inventory_system/flutter_app/ios
+          pod repo update
+          pod install
+          
+      - name: Compile production iOS App Bundle (.ipa file)
+        script: |
+          cd inventory_system/flutter_app
+          # Generates a fully signed, production-ready .ipa archive
+          flutter build ipa --release \
+            --export-method=app-store \
+            --build-name="1.0.0" \
+            --build-number=$BUILD_NUMBER
+            
+    artifacts:
+      - inventory_system/flutter_app/build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      
+    publishing:
+      email:
+        recipients:
+          - deepakchheda@gmail.com
+        notify:
+          success: true
+          failure: true
+      # Optional: Uncomment and configure to publish straight to TestFlight automatically
+      # app_store_connect:
+      #   auth: integration
+      #   submit_to_testflight: true
+      #   beta_groups:
+      #     - External Testers

@@ -1,0 +1,84 @@
+services:
+  # Managed Redis for Cache, WebSockets, and Celery Broker
+  - type: redis
+    name: inventory-redis
+    ipAllowList: [] # Kept internal to your Render network for security
+    plan: starter
+    maxmemoryPolicy: noeviction
+
+  # The main Django Web Server + ASGI WebSockets
+  - type: web
+    name: inventory-api
+    env: docker
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    plan: starter
+    envVars:
+      - key: DATABASE_URL
+        sync: false # YOU MUST ADD THIS MANUALLY IN RENDER DASHBOARD (from Supabase)
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: inventory-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: inventory-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: ALLOWED_HOSTS
+        value: "*" # You can lock this down to your render URL later
+      - key: CORS_ALLOWED_ORIGINS
+        sync: false # e.g., https://your-flutter-app.vercel.app
+
+  # Celery Background Worker (Processes tasks)
+  - type: worker
+    name: inventory-celery-worker
+    env: docker
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    plan: starter
+    dockerCommand: "celery -A config worker -l info"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: inventory-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: inventory-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
+
+  # Celery Beat (Triggers scheduled midnight rollovers)
+  - type: worker
+    name: inventory-celery-beat
+    env: docker
+    dockerContext: backend
+    dockerfilePath: backend/Dockerfile
+    plan: starter
+    dockerCommand: "celery -A config beat -l info"
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: inventory-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: inventory-redis
+          property: connectionString
+      - key: SECRET_KEY
+        generateValue: true
